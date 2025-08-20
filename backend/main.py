@@ -15,6 +15,7 @@ import logging
 from services.document_processor import DocumentProcessor
 from services.embedding_service import EmbeddingService
 from services.groq_service import GroqService
+from utils.file_writer import FileWriter
 from models.schemas import QueryRequest, QueryResponse, DocumentInfo, UploadResponse
 from database.chroma_client import ChromaClient
 
@@ -45,6 +46,7 @@ chroma_client = ChromaClient()
 document_processor = DocumentProcessor()
 embedding_service = EmbeddingService()
 groq_service = GroqService()
+file_writer = FileWriter()
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
@@ -219,6 +221,47 @@ async def delete_document(document_id: str):
     except Exception as e:
         logger.error(f"Error deleting document: {str(e)}")
         raise HTTPException(status_code=500, detail="Error deleting document")
+
+@app.post("/api/generate-website")
+async def generate_website(request: dict):
+    """Generate a complete website based on user prompt."""
+    try:
+        prompt = request.get("prompt", "")
+        if not prompt:
+            raise HTTPException(status_code=400, detail="Prompt is required")
+        
+        # Generate website using Groq
+        website_data = await groq_service.generate_website(prompt)
+        
+        if not website_data or "files" not in website_data:
+            raise HTTPException(status_code=500, detail="Failed to generate website")
+        
+        files_data = website_data["files"]
+        
+        # Validate file paths
+        validation_errors = file_writer.validate_file_paths(files_data)
+        if validation_errors:
+            raise HTTPException(status_code=400, detail=f"Invalid file paths: {', '.join(validation_errors)}")
+        
+        # Create backup of existing files
+        file_writer.backup_existing_files(files_data)
+        
+        # Write files to filesystem
+        write_results = file_writer.write_files(files_data)
+        
+        return {
+            "message": "Website generated successfully",
+            "files_written": write_results["files_written"],
+            "total_files": write_results["total_files"],
+            "errors": write_results["errors"],
+            "success": write_results["success"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating website: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating website: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

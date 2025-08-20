@@ -69,11 +69,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   );
 
   const suggestedPrompts = [
-    "Create a React landing page with Tailwind CSS",
-    "Add a login form with validation",
-    "Build a todo app with local storage",
-    "Create a dashboard with charts",
-    "Add a contact form with email integration"
+    "Create a modern landing page for a tech startup",
+    "Build an e-commerce website with product listings",
+    "Make a portfolio website for a designer",
+    "Create a restaurant website with menu and booking",
+    "Build a blog website with multiple pages",
+    "Make a dashboard with charts and analytics",
+    "Create a social media app interface",
+    "Build a real estate website with property listings"
   ];
 
   return (
